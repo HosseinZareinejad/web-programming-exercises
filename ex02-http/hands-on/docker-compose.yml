@@ -1,0 +1,29 @@
+services:
+  # The legacy service. It has no ports published, so only containers
+  # on the "internal" network can reach it.
+  httpbin:
+    image: ghcr.io/mccutchen/go-httpbin
+    environment:
+      PORT: "8081"
+    networks:
+      - internal
+
+  # The reverse proxy. It is the only thing visible from outside.
+  proxy:
+    build: ./proxy
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      UPSTREAM_URL: http://httpbin:8081
+    ports:
+      - "${PROXY_PORT:-80}:80"
+    depends_on:
+      - httpbin
+    networks:
+      - internal
+      - public
+
+networks:
+  # internal: true means containers here cannot reach the outside world.
+  internal:
+    internal: true
+  public:
